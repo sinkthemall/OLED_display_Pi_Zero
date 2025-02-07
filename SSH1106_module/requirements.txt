@@ -1,0 +1,6 @@
+RPi.GPIO
+pillow
+numpy
+spidev
+smbus
+luma.oled
