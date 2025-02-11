@@ -67,7 +67,7 @@
 
 
 
-from iohandler import InputHandler
+from iohandler import InputHandler, ScreenManager
 from config import *
 import time 
 from PIL import Image
@@ -90,12 +90,22 @@ def resize_image(path):
     return fitted_image
     pass
 
+def test_drawImage():
+    screen = ScreenManager()
+    img = resize_image("./monochrome_undertale.jpg")
+    screen.InitializeSession(img=img)
+    screen.DisplayImage()
+    time.sleep(5)
+    screen.EndSession()
 
+
+def nothing():
+    pass
 io = InputHandler()
-keyboard = KeyBoard(io, inpstr="password")
+keyboard = KeyBoard(io, prompt="password")
 
 
-carousel = CarouselMenu(io, ["Wifi", "System", "Debug", "Bluetooth", "InputCheck", "bruhbruhlmao"])
+carousel = CarouselMenu(io, {"Wifi" :nothing, "System" : nothing, "Debug" : nothing, "Bluetooth" : nothing, "ShowImage" : test_drawImage, "bruhbruhlmao" : nothing}, isBase=True)
 try:
     # while True:
     #     curkey = io.GetCurrentKeyPress()
