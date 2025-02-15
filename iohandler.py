@@ -53,6 +53,7 @@ class ScreenManager:
             return
         else:
             cls._instance.screencontainer.pop()
+        # cls.DisplayImage()
 
 
 font_size = 11
@@ -128,3 +129,7 @@ class InputHandler:
         Clean up GPIO pins.
         """
         GPIO.cleanup()
+
+
+io = InputHandler()
+screen = ScreenManager()
