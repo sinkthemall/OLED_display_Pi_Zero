@@ -32,7 +32,7 @@ Description=UI for oled display
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 <git folder path>/main.py
+ExecStart=/usr/bin/python3 <git folder path>/main.py &
 Restart=always
 User=root
 WorkingDirectory=<git folder path>
