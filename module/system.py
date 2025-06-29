@@ -17,7 +17,10 @@ def getLocalIP():
     for interface, addresses in interfaces.items():
         for address in addresses:
                 if address.family == socket.AF_INET:  # IPv4
-                    ip_list.append(f"{interface} - {address.address}")
+                    if (len(interface) > 2):
+                        ip_list.append(f"{interface[0] + interface[-1]} - {address.address}") 
+                    else:
+                        ip_list.append(f"{interface} - {address.address}")
                     # projector.Reset()
                     # # projector.DrawText((34, 10), f"Device IP:")
                     # # projector.DrawText((20, 26), f"{address.address}")
@@ -27,7 +30,7 @@ def getLocalIP():
                     # projector.Display(waitforkey= True)
                     # return
     ls = ListOption()
-    ls.Interactive(ip_list)
+    ls.Interactive(ip_list, prompt="IP list")
     return 
 
 SystemOptions = CarouselMenu({

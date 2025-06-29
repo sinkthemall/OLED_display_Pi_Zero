@@ -57,10 +57,10 @@ def profile_existed(ssid):
 def profileRemove():
     while True:
         profile_list = scanProfileSSID()
-        ssid = ListOption().Interactive(profile_list)
+        ssid = ListOption().Interactive(profile_list, prompt = "Available profiles")
         if ssid == None:
             return 
-        ensure = ListOption().Interactive(["yes", "no"], "Delete profile?", yesno = True)
+        ensure = ListOption().Interactive(["yes", "no"], prompt = "Delete profile?")
         if ensure == 0:
             try:
                 subprocess.run(["sudo", "nmcli", "connection", "delete", profile_list[ssid]], check=True)
@@ -101,7 +101,7 @@ def wifiConnect():
     
     ls = ListOption()
     ap_list = scanAP()
-    ssid = ls.Interactive(ap_list)
+    ssid = ls.Interactive(ap_list, prompt="Available AP")
     if ssid == None:
         return 
     else:
@@ -125,7 +125,7 @@ def listAPInfo():
                 AP_strength.append(strength)
         ls = ListOption()
         while True: 
-            ssid = ls.Interactive(AP_name)
+            ssid = ls.Interactive(AP_name, prompt ="AP list")
             if ssid != None:
                 projector.Reset()
                 projector.DrawText((1, 1), f"SSID:")
