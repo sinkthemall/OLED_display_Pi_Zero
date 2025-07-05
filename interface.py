@@ -13,6 +13,7 @@ keychoice = [
 ]
 
 
+
 font = ImageFont.truetype("UbuntuMono-B.ttf", size=14)
 titlefont = ImageFont.truetype("UbuntuMono-R.ttf", size = 12)
 # carousel_font = ImageFont.truetype("Roboto-Medium.ttf", size = 11)
