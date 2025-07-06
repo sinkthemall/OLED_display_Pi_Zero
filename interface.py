@@ -12,7 +12,20 @@ keychoice = [
     ["!","@","#","$","%","_","=",";",":","'",'"',",",".","?","`","\\",]
 ]
 
-
+neokeychoice = [[
+        ['1', '2', '3', '4' ,'5', '6', '7', '8', '9', '0'],
+        ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'], 
+        ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';'],
+        ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', "'"], 
+        ['-', '=', '[', ']', '/', '`', '\\', ' ']
+    ], [
+        ['!', '@', '#', '$' ,'%', '^', '&', '*', '(', ')'],
+        ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'], 
+        ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':'],
+        ['Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '"'], 
+        ['_', '+', '{', '}', '?', '~', '|',  ' '],
+    ]]
+numrow = 5
 
 font = ImageFont.truetype("UbuntuMono-B.ttf", size=14)
 titlefont = ImageFont.truetype("UbuntuMono-R.ttf", size = 12)
@@ -267,6 +280,233 @@ class KeyBoard:
 
         self.draw.text((x - 9, y + 3), text="_", fill=255, font=font)
         self.screen.DisplayImage()
+
+class NeoKeyboard :
+    _instance = None  # Singleton instance
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(NeoKeyboard, cls).__new__(cls)
+            cls._instance.__initialize()  # Call a private initializer method
+        return cls._instance
+
+    def __initialize(self):
+        """
+        Private initialization method to prevent re-initialization.
+        """
+        self.buffer = [None for i in range(128)]  # Limit input to 127 characters
+        # index for current keyboard cursor
+        self.idx_I = None
+        self.idx_J = None
+        self.shiftkey = None 
+        self.val = None
+
+        # index for buffer cursor
+        self.curidx = 0
+        self.lasidx = 0
+
+        # an control variable to track whether cursor is in buffer or in keyboard
+        self.trackcursor = None
+
+        self.draw = ImageDraw.Draw(Image.new("1", (OLED_WIDTH, OLED_HEIGHT), color=0))
+        self.screen = ScreenManager()
+        self.condition = threading.Condition()
+        self.keypress = None
+
+    def __RegisterCallback(self):
+        io = InputHandler()
+        io.PushInterface({ 
+            JS_L_PIN : self.Left,
+            JS_R_PIN : self.Right,
+            JS_U_PIN : self.Up,
+            JS_D_PIN : self.Down,
+            JS_P_PIN : self.AddChar,
+            BTN1_PIN : self.DelChar,
+            BTN2_PIN : self.ConfirmOutput,
+            BTN3_PIN : self.Back
+        })
+        # pass
+
+    def __UnregisterCallback(self):
+        io = InputHandler()
+        io.PopInterface()
+
+    def __KeyHandling(self):
+        # Confirm input
+        if self.keypress == BTN1_PIN:
+            
+            return 
+        elif self.keypress == BTN3_PIN: # back button
+            return
+        # Shift keyboard:
+        elif self.keypress == BTN2_PIN:
+            self.shiftkey += 1
+            self.shiftkey %= len(neokeychoice)
+            return 
+        
+        if self.trackcursor == 0: # in buffer
+            if self.keypress == JS_U_PIN:
+                pass
+            elif self.keypress == JS_D_PIN:
+                self.trackcursor = 1
+
+            # Moving cursor to next/prev character
+            elif self.keypress == JS_L_PIN:
+                if self.curidx > 0 :
+                    self.curidx -=1
+            elif self.keypress == JS_R_PIN:
+                if self.curidx <= self.lasidx:
+                    self.curidx += 1
+            elif self.keypress == JS_P_PIN:
+                # in buffer cursor, it become delete button, but in keyboard cursor, it become add button
+                if self.lasidx >0 :
+                    for i in range(self.curidx, self.lasidx):
+                        self.buffer[i] = self.buffer[i + 1]
+                    self.lasidx -= 1
+                    if self.curidx > self.lasidx:
+                        self.curidx = self.lasidx
+            return 
+            
+        elif self.trackcursor == 1: # in keyboard
+            if self.keypress == JS_U_PIN:
+                if self.idx_I == 0:
+                    self.trackcursor == 0
+                else:
+                    self.idx_I -= 1
+                
+            elif self.keypress == JS_D_PIN :
+                if self.idx_I + 1 < numrow:
+                    self.idx_I += 1
+                
+            elif self.keypress == JS_L_PIN:
+                self.idx_J = min(len(neokeychoice[self.shiftkey][self.idx_I]) - 1, self.idx_J)
+                self.idx_J -= 1
+                self.idx_J %= len(neokeychoice[self.shiftkey][self.idx_I])
+                
+            elif self.keypress == JS_R_PIN:
+                self.idx_J = min(len(neokeychoice[self.shiftkey][self.idx_I]) - 1, self.idx_J)
+                self.idx_J += 1
+                self.idx_J %= len(neokeychoice[self.shiftkey][self.idx_I])
+            elif self.keypress == JS_P_PIN:
+                if (self.lasidx == 127) :
+                    return 
+                
+                for i in range(self.lasidx - 1, self.curidx - 1, -1):
+                    self.buffer[i + 1] = self.buffer[i]
+                self.buffer[self.curidx] = neokeychoice[self.shiftkey][self.idx_I][min(len(neokeychoice[self.shiftkey][self.idx_I]) - 1, self.idx_J)]
+                if self.curidx == self.lasidx:
+                    self.curidx += 1
+                self.lasidx += 1
+            pass
+
+    def GetVal(self):
+        return self.val
+
+    def Interactive(self, prompt=""):
+        # io = InputHandler()
+        self.__RegisterCallback()
+        self.trackcursor = 0
+        self.screen.InitializeSession(self.image)
+
+        while True:
+            # self.__Display() # in case of keyboard, there are too many calls to drawing, which can slow
+            # process, so we use a method call LazyDrawing (I made that name), which only draw to the actual changing
+            # cursor, not the whole keyboard
+            with self.condition:
+                self.condition.wait()
+            if self.keypress == BTN3_PIN or self.keypress == BTN2_PIN:
+                break
+            self.__KeyHandling()
+            if self.val != None:
+                break
+
+        self.screen.EndSession()
+        # if moving RegisterCallback() and UnregisterCallback() into ctor/dtor
+        # then instance with singleton pattern will never call UnregisterCallback()
+        # Find a way to fix thjs, instead of putting in Interactive()
+        self.__UnregisterCallback() 
+
+    def Back(self):
+        self.val = None
+        self.keypress = BTN3_PIN
+        with self.condition:
+            self.condition.notify()
+    
+    def ConfirmOutput(self):
+        if self.lasidx < 0:
+            self.val = ""
+        else:
+            self.val = "".join(self.buffer[i] for i in range(self.lasidx))
+        self.keypress = BTN2_PIN
+        with self.condition :
+            self.condition.notify()
+
+    def DelChar(self):
+
+        self.keypress = BTN1_PIN
+        with self.condition:
+            self.condition.notify()
+
+
+    def AddChar(self):
+
+        self.keypress = JS_P_PIN
+        with self.condition:
+            self.condition.notify()
+
+    def Up(self):
+        self.keypress = JS_U_PIN
+        with self.condition:
+            self.condition.notify()
+
+    def Down(self):
+        self.keypress = JS_D_PIN
+        with self.condition:
+            self.condition.notify()
+
+    def Left(self):
+        self.keypress = JS_L_PIN
+        with self.condition:
+            self.condition.notify()
+
+
+    def Right(self):
+
+        self.keypress = JS_R_PIN
+        with self.condition:
+            self.condition.notify()
+
+    def __Display(self):
+        x, y = 1, 26
+        self.draw.rectangle((0, 0, OLED_WIDTH, OLED_HEIGHT), fill=0)
+        self.draw.text((1, 1), text=self.prompt, fill=255, font=titlefont)
+        
+        st = max(0, self.index - SLIDE_SIZE + 1) if self.index >= SLIDE_SIZE - 1 else 0
+        for i in range(st, self.index + 1):
+            keyx, keyy = self.buffer[i]
+            self.draw.text((x, y), text=keychoice[keyx][keyy], fill=255, font=font)
+            x += 9
+
+        self.draw.text((x - 9, y + 3), text="_", fill=255, font=font)
+        self.screen.DisplayImage()
+
+    def __LazyReDraw(self):
+        '''
+        Clear the cursor, not redraw entire keyboard
+        '''
+        # LazyReDraw work by copy-paste the no-cursor region. There are n-image (include all the shift keyboard) of keyboard with no cursor
+        # And it work by just copying the keyboard into our current image.
+        # In my original solution, I only want to redraw the affect cursor.
+        # but since my new method also call the draw (or Image.pase()) only once
+        # even with a larger region, it is not really a problem in performance (Image handling bit image in byte, bitset), therefore I chose to paste region instead of redoing the draw cursor process (which take more
+        # code to handle)
+        pass
+    def __LazyDraw(self):
+        '''
+        Draw the cursor, not redraw entire keyboard
+        '''
+
+        pass
 
 keyboard = KeyBoard()
 
