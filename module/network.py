@@ -57,10 +57,13 @@ def profile_existed(ssid):
 def profileRemove():
     while True:
         profile_list = scanProfileSSID()
-        ssid = ListOption().Interactive(profile_list, prompt = "Available profiles")
+        ls = ListOption()
+        ls.LoadItems(profile_list, prompt = "Available profiles")
+        ssid = ls.Interactive()
         if ssid == None:
             return 
-        ensure = ListOption().Interactive(["yes", "no"], prompt = "Delete profile?")
+        ls.LoadItems(["yes", "no"], prompt = "Delete profile?")
+        ensure = ls.Interactive()
         if ensure == 0:
             try:
                 subprocess.run(["sudo", "nmcli", "connection", "delete", profile_list[ssid]], check=True)
@@ -88,7 +91,7 @@ def apConnect(ssid):
             return
         else:
             try:
-                subprocess.run(f"sudo nmcli dev wifi connect {ssid} password {pwd}",shell=True,  check=True)
+                subprocess.run(f"sudo nmcli dev wifi connect \"{ssid}\" password \"{pwd}\"",shell=True,  check=True)
                 projector.Reset()
                 projector.DrawText((1,28), f"[+] Wifi connected")
                 projector.Display()
@@ -101,7 +104,8 @@ def wifiConnect():
     
     ls = ListOption()
     ap_list = scanAP()
-    ssid = ls.Interactive(ap_list, prompt="Available AP")
+    ls.LoadItems(ap_list, prompt="Available AP")
+    ssid = ls.Interactive()
     if ssid == None:
         return 
     else:
@@ -125,7 +129,8 @@ def listAPInfo():
                 AP_strength.append(strength)
         ls = ListOption()
         while True: 
-            ssid = ls.Interactive(AP_name, prompt ="AP list")
+            ls.LoadItems(AP_name, prompt ="AP list")
+            ssid = ls.Interactive()
             if ssid != None:
                 projector.Reset()
                 projector.DrawText((1, 1), f"SSID:")

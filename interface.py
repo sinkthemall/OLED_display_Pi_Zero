@@ -5,38 +5,7 @@ from PIL import ImageDraw, Image, ImageFont
 import threading
 
 import time
-keychoice = [
-	["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"],
-	["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"],
-	["0","1","2","3","4","5","6","7","8","9","+","-","*","/","&","|","^","~","(",")","[","]","{","}","<",">"],
-    ["!","@","#","$","%","_","=",";",":","'",'"',",",".","?","`","\\",]
-]
 
-neokeychoice = [[
-        ['1', '2', '3', '4' ,'5', '6', '7', '8', '9', '0'],
-        ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'], 
-        ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';'],
-        ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', "'"], 
-        ['-', '=', '[', ']', '/', '`', '\\', ' ']
-    ], [
-        ['!', '@', '#', '$' ,'%', '^', '&', '*', '(', ')'],
-        ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'], 
-        ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':'],
-        ['Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '"'], 
-        ['_', '+', '{', '}', '?', '~', '|',  ' '],
-    ]]
-numrow = 5
-
-font = ImageFont.truetype("UbuntuMono-B.ttf", size=14)
-titlefont = ImageFont.truetype("UbuntuMono-R.ttf", size = 12)
-# carousel_font = ImageFont.truetype("Roboto-Medium.ttf", size = 11)
-carousel_font = ImageFont.truetype("DejaVuSansMono-Bold.ttf", size = 11)
-
-item_font = ImageFont.truetype("DejaVuSans.ttf", size = 10)
-prompt_item_font = ImageFont.truetype("DejaVuSans-Bold.ttf", size = 10)
-SLIDE_SIZE = 14
-# projector_font = ImageFont.truetype("Hack-Regular.ttf", size = 11)
-projector_font = ImageFont.truetype("DejaVuSans.ttf", size = 11)
 class Projector:
     _instance = None  # Singleton instance
 
@@ -183,25 +152,6 @@ class KeyBoard:
                 self.condition.wait()
             if self.keypress == BTN3_PIN or self.keypress == BTN2_PIN:
                 break
-                # if self.keypress == JS_L_PIN:
-                #     self.Left()
-                # elif self.keypress == JS_R_PIN:
-                #     self.Right()
-                # elif self.keypress == JS_U_PIN:
-                #     self.Up()
-                # elif self.keypress == JS_D_PIN:
-                #     self.Down()
-                # elif self.keypress == BTN1_PIN:
-                #     self.DelChar()
-                # elif self.keypress == JS_P_PIN:
-                #     self.AddChar()
-                # elif self.keypress == BTN3_PIN:  # Cancel input
-                #     break
-                # elif self.keypress == BTN2_PIN:  # Confirm input
-                    
-                #     break
-                # time.sleep(0.05)
-                
 
         self.screen.EndSession()
         # if moving RegisterCallback() and UnregisterCallback() into ctor/dtor
@@ -290,6 +240,8 @@ class NeoKeyboard :
             cls._instance.__initialize()  # Call a private initializer method
         return cls._instance
 
+    
+
     def __initialize(self):
         """
         Private initialization method to prevent re-initialization.
@@ -298,21 +250,33 @@ class NeoKeyboard :
         # index for current keyboard cursor
         self.idx_I = None
         self.idx_J = None
-        self.shiftkey = None 
+        self.shiftkey = 0 
         self.val = None
 
         # index for buffer cursor
-        self.curidx = 0
-        self.lasidx = 0
+        self.curidx = 0 # current buffer index
+        self.lasidx = 0 # buffer length
+        self.slidefn = 0 # slide frame number
 
         # an control variable to track whether cursor is in buffer or in keyboard
         self.trackcursor = None
-
-        self.draw = ImageDraw.Draw(Image.new("1", (OLED_WIDTH, OLED_HEIGHT), color=0))
+        self.image = Image.new("1", (OLED_WIDTH, OLED_HEIGHT), color=0)
+        self.draw = ImageDraw.Draw(self.image)
         self.screen = ScreenManager()
         self.condition = threading.Condition()
         self.keypress = None
+        self.keyboardlayout = [Image.new("1", (OLED_WIDTH, OLED_HEIGHT), color=0) for i in range(len(neokeychoice))]
+        self.__PrepareKBLayout() 
 
+    def __PrepareKBLayout(self):
+        tmpdraw = [ImageDraw.Draw(self.keyboardlayout[i]) for i in range(len(self.keyboardlayout))]
+
+        for layout in range(len(neokeychoice)):
+            for i in range(KBnumrow):
+                for j in range(len(neokeychoice[layout][i])):
+                     tmpdraw[layout].text(( KBx_start + char_align +  j * KBx_dis, KBy_start + i * KBy_dis), text=neokeychoice[layout][i][j], fill = 255, font = KB_font, align="center")
+            tmpdraw[layout].rectangle((1, 1, 126, KBy_start - 2), outline = 1, width = 1)
+        pass
     def __RegisterCallback(self):
         io = InputHandler()
         io.PushInterface({ 
@@ -320,9 +284,9 @@ class NeoKeyboard :
             JS_R_PIN : self.Right,
             JS_U_PIN : self.Up,
             JS_D_PIN : self.Down,
-            JS_P_PIN : self.AddChar,
-            BTN1_PIN : self.DelChar,
-            BTN2_PIN : self.ConfirmOutput,
+            JS_P_PIN : self.AdjustChar,
+            BTN1_PIN : self.ConfirmOutput,
+            BTN2_PIN : self.ShiftKeyboard,
             BTN3_PIN : self.Back
         })
         # pass
@@ -340,8 +304,7 @@ class NeoKeyboard :
             return
         # Shift keyboard:
         elif self.keypress == BTN2_PIN:
-            self.shiftkey += 1
-            self.shiftkey %= len(neokeychoice)
+            self.shiftkey ^= 1
             return 
         
         if self.trackcursor == 0: # in buffer
@@ -354,28 +317,32 @@ class NeoKeyboard :
             elif self.keypress == JS_L_PIN:
                 if self.curidx > 0 :
                     self.curidx -=1
+                    if self.curidx <= self.slidefn and self.slidefn > 0:
+                        self.slidefn -= 1
             elif self.keypress == JS_R_PIN:
-                if self.curidx <= self.lasidx:
+                if self.curidx < self.lasidx:
                     self.curidx += 1
+                    if self.slidefn + SLIDE_SIZE == self.curidx:
+                        self.slidefn += 1
             elif self.keypress == JS_P_PIN:
                 # in buffer cursor, it become delete button, but in keyboard cursor, it become add button
-                if self.lasidx >0 :
+                if self.curidx > 0:
                     for i in range(self.curidx, self.lasidx):
-                        self.buffer[i] = self.buffer[i + 1]
+                        self.buffer[i - 1] = self.buffer[i]
                     self.lasidx -= 1
-                    if self.curidx > self.lasidx:
-                        self.curidx = self.lasidx
+                    self.curidx -= 1
+                    if self.slidefn > 0:
+                        self.slidefn -= 1 
             return 
-            
         elif self.trackcursor == 1: # in keyboard
             if self.keypress == JS_U_PIN:
                 if self.idx_I == 0:
-                    self.trackcursor == 0
+                    self.trackcursor = 0
                 else:
                     self.idx_I -= 1
                 
             elif self.keypress == JS_D_PIN :
-                if self.idx_I + 1 < numrow:
+                if self.idx_I + 1 < KBnumrow:
                     self.idx_I += 1
                 
             elif self.keypress == JS_L_PIN:
@@ -393,10 +360,12 @@ class NeoKeyboard :
                 
                 for i in range(self.lasidx - 1, self.curidx - 1, -1):
                     self.buffer[i + 1] = self.buffer[i]
-                self.buffer[self.curidx] = neokeychoice[self.shiftkey][self.idx_I][min(len(neokeychoice[self.shiftkey][self.idx_I]) - 1, self.idx_J)]
-                if self.curidx == self.lasidx:
-                    self.curidx += 1
+                self.buffer[self.curidx] = neokeychoice[self.shiftkey][self.idx_I][min(len(neokeychoice[self.shiftkey][self.idx_I]) - 1, self.idx_J)] # this allow to remember the last key in case of space moving to adjacent key
+                self.curidx += 1
                 self.lasidx += 1
+                if self.slidefn + SLIDE_SIZE <= self.curidx:
+                    self.slidefn += 1
+
             pass
 
     def GetVal(self):
@@ -406,15 +375,23 @@ class NeoKeyboard :
         # io = InputHandler()
         self.__RegisterCallback()
         self.trackcursor = 0
+        self.shiftkey = 0
+        self.idx_I = 0
+        self.idx_J = 0
+        self.val = None
+        self.slidefn = 0
+        self.curidx = 0
+        self.lasidx = 0
         self.screen.InitializeSession(self.image)
 
         while True:
             # self.__Display() # in case of keyboard, there are too many calls to drawing, which can slow
             # process, so we use a method call LazyDrawing (I made that name), which only draw to the actual changing
             # cursor, not the whole keyboard
+            self.__LazyDraw()
             with self.condition:
                 self.condition.wait()
-            if self.keypress == BTN3_PIN or self.keypress == BTN2_PIN:
+            if self.keypress == BTN3_PIN or self.keypress == BTN1_PIN:
                 break
             self.__KeyHandling()
             if self.val != None:
@@ -433,22 +410,23 @@ class NeoKeyboard :
             self.condition.notify()
     
     def ConfirmOutput(self):
-        if self.lasidx < 0:
+        if self.lasidx <= 0:
             self.val = ""
         else:
             self.val = "".join(self.buffer[i] for i in range(self.lasidx))
-        self.keypress = BTN2_PIN
+        print(f"value : {self.val}")
+        self.keypress = BTN1_PIN
         with self.condition :
             self.condition.notify()
 
-    def DelChar(self):
+    def ShiftKeyboard(self): 
 
-        self.keypress = BTN1_PIN
+        self.keypress = BTN2_PIN
         with self.condition:
             self.condition.notify()
 
 
-    def AddChar(self):
+    def AdjustChar(self):
 
         self.keypress = JS_P_PIN
         with self.condition:
@@ -476,23 +454,9 @@ class NeoKeyboard :
         with self.condition:
             self.condition.notify()
 
-    def __Display(self):
-        x, y = 1, 26
-        self.draw.rectangle((0, 0, OLED_WIDTH, OLED_HEIGHT), fill=0)
-        self.draw.text((1, 1), text=self.prompt, fill=255, font=titlefont)
-        
-        st = max(0, self.index - SLIDE_SIZE + 1) if self.index >= SLIDE_SIZE - 1 else 0
-        for i in range(st, self.index + 1):
-            keyx, keyy = self.buffer[i]
-            self.draw.text((x, y), text=keychoice[keyx][keyy], fill=255, font=font)
-            x += 9
-
-        self.draw.text((x - 9, y + 3), text="_", fill=255, font=font)
-        self.screen.DisplayImage()
-
-    def __LazyReDraw(self):
+    def __LazyDraw(self):
         '''
-        Clear the cursor, not redraw entire keyboard
+        Paste whole keyboard, not draw characters one by one
         '''
         # LazyReDraw work by copy-paste the no-cursor region. There are n-image (include all the shift keyboard) of keyboard with no cursor
         # And it work by just copying the keyboard into our current image.
@@ -500,15 +464,26 @@ class NeoKeyboard :
         # but since my new method also call the draw (or Image.pase()) only once
         # even with a larger region, it is not really a problem in performance (Image handling bit image in byte, bitset), therefore I chose to paste region instead of redoing the draw cursor process (which take more
         # code to handle)
-        pass
-    def __LazyDraw(self):
-        '''
-        Draw the cursor, not redraw entire keyboard
-        '''
+        # With buffer and cursor, I draw each by calling draw function
+        self.image.paste(self.keyboardlayout[self.shiftkey], (0, 0, 128, 64))
+        if self.trackcursor == 0: 
+            self.draw.rectangle((0, 0, 127, KBy_start - 1), outline = 255, width = 1)
+        elif self.trackcursor  == 1:
+            if (self.idx_I == KBnumrow - 1) and (self.idx_J >= len(neokeychoice[self.shiftkey][KBnumrow - 1]) - 1):
+                self.draw.rounded_rectangle((KBx_start + (KBlastnumcol - 1)* KBx_dis, KBy_start + self.idx_I * KBy_dis, KBx_start + KBnumcol * KBx_dis, KBy_start + KBnumrow * KBy_dis ), outline = 255, width = 1, radius = 2)
+            else:
+                self.draw.rounded_rectangle((KBx_start +  self.idx_J * KBx_dis, KBy_start + self.idx_I * KBy_dis,KBx_start + (self.idx_J + 1) * KBx_dis, KBy_start + (self.idx_I + 1) * KBy_dis), outline = 255, width = 1, radius = 2)
+        for i in range(self.slidefn, min(self.slidefn + SLIDE_SIZE, self.lasidx)):
+            self.draw.text(( KBbuf_start +  KBchar_dis * (i - self.slidefn) + 2, 2), text = self.buffer[i], font = KBbuf_font, fill = 255)
+        
 
-        pass
+        # self.draw.text(( 4 +  KBchar_dis * (i - self.slidefn) + 2, 2), text= "󱞪", fill = 255, font = KBbuf_font)
+        self.draw.line((KBbuf_start + KBchar_dis * (self.curidx - self.slidefn) + 2, 13, KBbuf_start + KBchar_dis * (self.curidx - self.slidefn) + 2 + KBcursor_len, 13 ), fill = 255, width=1)
+        
+        self.screen.DisplayImage()
 
-keyboard = KeyBoard()
+keyboard = NeoKeyboard()
+# neokeyboard = NeoKeyboard()
 
 class ListOption: 
     # an exact copy cat of carousel menu, but item list is flexible, not storing and only return value
@@ -526,6 +501,7 @@ class ListOption:
         Private initialization method to prevent re-initialization.
         """
         self.items = None
+        self.prompt = None
         self.image = Image.new("1", (OLED_WIDTH, OLED_HEIGHT), color=0)
         self.draw = ImageDraw.Draw(self.image)
         self.slider = 0
@@ -549,8 +525,7 @@ class ListOption:
         io.PopInterface()
         pass
 
-    def Interactive(self, items, prompt=""):
-        self.items = items
+    def Interactive(self):
         self.__RegisterCallback()
 
         self.slider = 0
@@ -560,7 +535,7 @@ class ListOption:
         val = None
 
         while True:
-            self.__Display(prompt)
+            self.__Display(self.prompt)
             with self.condition:
                 self.condition.wait()
             if self.keypress == BTN3_PIN:
@@ -574,6 +549,9 @@ class ListOption:
         self.__UnregisterCallback()
         self.items = None
         return val
+    def LoadItems(self, items, prompt = ""):
+        self.items = items
+        self.prompt = prompt
 
     def Back(self):
         self.keypress = BTN3_PIN
@@ -621,14 +599,6 @@ class ListOption:
         with self.condition:
             self.condition.notify()
 
-        
-    # def __YesnoDisplay(self, items, prompt):
-    #     self.draw.rectangle((0, 0, OLED_WIDTH, OLED_HEIGHT), fill=0)
-    #     self.draw.text((1, 1), text= prompt, fill = 255, font = titlefont)
-    #     self.draw.text((20, 3 + 11 * 3), text = items[0], fill = 255, font = item_font)
-    #     self.draw.text((20, 3 + 11 * 4), text = items[1], fill = 255, font = item_font)
-    #     self.draw.text((1, 3 + 11 * (3 + self.idx)), text = ">", fill = 255, font = item_font)
-    #     self.screen.DisplayImage()
     def __Display(self, prompt : str):
         """
         Handles drawing the list on the screen.
@@ -690,22 +660,6 @@ class CarouselMenu:
     def Interactive(self):
         self.__RegisterCallback()
         self.screen.InitializeSession(self.image)
-        # io = InputHandler()
-        # while True: 
-        #     with self.condition:
-        #     self.__Display()
-        #     keypress = io.GetCurrentKeyPress()
-        #     if keypress == JS_U_PIN:
-        #         self.Up()
-        #     elif keypress == JS_D_PIN:
-        #         self.__Down()
-        #     elif keypress == BTN3_PIN:
-        #         if not self.isbase:
-        #             break
-        #     elif keypress == JS_P_PIN:
-        #         self.items[self.idx + self.slider]()
-            
-        #     time.sleep(0.05)
 
         while True: 
             self.__Display()
@@ -717,8 +671,7 @@ class CarouselMenu:
             elif self.keypress == BTN3_PIN:
                 if not self.isbase:
                     break
-
-            self.keypress = None
+            # self.keypress = None
 
         self.screen.EndSession()
         self.__UnregisterCallback()

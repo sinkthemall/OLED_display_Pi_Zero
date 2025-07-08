@@ -30,7 +30,8 @@ def getLocalIP():
                     # projector.Display(waitforkey= True)
                     # return
     ls = ListOption()
-    ls.Interactive(ip_list, prompt="IP list")
+    ls.LoadItems(ip_list, prompt="IP list")
+    ls.Interactive()
     return 
 
 SystemOptions = CarouselMenu({
