@@ -15,14 +15,15 @@ def nothing():
     pass
 io = InputHandler()
 # keyboard = KeyBoard(io)
-from module.wifi import WifiConnect, ProfileRemove
-from module.system import ShutDown, Reboot, GetLocalIP
-carousel = CarouselMenu(io, {
-                                "Wifi" : {"Remove profile" : ProfileRemove, "Connect wifi" : WifiConnect}, 
-                                "System": {"Shutdown" : ShutDown, "Reboot" : Reboot, "Device IP"  : GetLocalIP} , 
+from module.network import WifiOptions
+from module.system import SystemOptions
+carousel = CarouselMenu({
+                                "Network" : WifiOptions.Interactive, 
+                                "System": SystemOptions.Interactive , 
                                 "Debug" : nothing, 
                                 "Attack" : nothing, 
-                                "Show Image" : test_drawImage}, isBase=True)
+                                "Show Image" : test_drawImage
+            }, isBase=True)
 try:
     carousel.Interactive()
 except:
