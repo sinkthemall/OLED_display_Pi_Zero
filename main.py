@@ -17,10 +17,11 @@ io = InputHandler()
 # keyboard = KeyBoard(io)
 from module.network import WifiOptions
 from module.system import SystemOptions
+from module.debug import Debug
 carousel = CarouselMenu({
                                 "Network" : WifiOptions.Interactive, 
                                 "System": SystemOptions.Interactive , 
-                                "Debug" : nothing, 
+                                "Debug" : Debug.Interactive, 
                                 "Attack" : nothing, 
                                 "Show Image" : test_drawImage
             }, isBase=True)

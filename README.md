@@ -1,6 +1,19 @@
 # OLED display module Pi Zero
-A display module for Waveshare 1.3inch oled display using SH1106 driver, written in python.
+A general display module for Waveshare 1.3inch oled display using SH1106 driver, written in python.
 You can found production info in [here](https://www.waveshare.com/1.3inch-oled-hat.htm)
+
+## Overview
+-   [1 .Features](#1-features)
+-   [2. Module function](#2-module-function)
+-   [3. Install](#3-install)
+-   [4. Uninstall](#4-uninstall)
+-   [5. Image](#5-image)
+-   [6. Framework usage](#6-framework-usage)
+    -   [`CarouselMenu`](#carouselmenu)
+    -   [`ListOption`](#listoption)
+    -   [`Keyboard`](#keyboard)
+-   [7. Future development plan](#7-future-development-plan)
+
 ### 1. Features
 -   Can input a string, like keyboard
 -   Carousel menu, easy to use
@@ -53,7 +66,7 @@ sudo systemctl enable Oled-display.service
 sudo systemctl start my_service.service
 ```
 
-### 4. Uninstalling
+### 4. Uninstall
 Just stop the service, disable then remove the service file, then reload daemon:
 ```bash
 sudo systemctl stop my_service.service
@@ -65,9 +78,9 @@ sudo systemctl daemon-reload
 ### 5. Image 
 Some images from module:
 -   Enter a string
-![input_from_keyboard](./image/img1.jpg)
+![input_from_keyboard](./image/neokeyboard.jpg)
 -   Listing AP
-![ap_listing](./image/img2.jpg)
+![ap_listing](./image/APlist.jpg)
 -   Carousel's main menu 
 ![carousel_menu](./image/img3.jpg)
 
@@ -92,7 +105,8 @@ Use this when you have a bunch of option, and you want to select one. ListOption
 ```python
 from interface import ListOption
 ls = ListOption()
-chosen_option = ls.Interactive(items = ["Option A", "Option B", "Option C"], prompts = "Your options ?")
+ls.LoadItems(items = ["Option A", "Option B", "Option C"], prompts = "Your options ?")
+chosen_option = ls.Interactive()
 ```
 
 #### `Keyboard`
@@ -100,12 +114,17 @@ Get input from user, and return value.
 
 ```python
 from interface import keyboard # keyboard = KeyBoard(), this help when I implement new keyboard
-keyboard.Interactive(prompt = "Enter your string" )
+keyboard.Interactive(prompt = "Enter your string")
 val = keyboard.GetVal()
 ```
 
+**In all three of the interfaces, they all have some method like : `Up()`, `Down()`, ... Those are function for registering callback to handle button event. I suggest you should not touch it unless you know what you are doing**
 
-### 7. Next target
+
+#### `Projector`
+The purpose of this is to display some message correspond to command status. But it is still under development and not really good for using, also it is kinda buggy. Currently I don't recommend to use it.
+
+### 7. Future development plan
 -   [ ] Do the range adjust UI (like volumn adjust)
 -   [ ] Make some fancy UI (pokedex similar, if have time)
 -   [ ] Make transition animation (this one cost lots of RAM, hard to do, so its depend)
